@@ -10,9 +10,29 @@ namespace WebApi.Controllers
     public class EmployeeController : ApiController
     {
         EmployeeDBEntities db = new EmployeeDBEntities();
-        public IEnumerable<Employee> Get()
+        public HttpResponseMessage Get(string gender = "all", int? top = 0)
         {
-            return db.Employees.ToList();
+            IQueryable<Employee> query = db.Employees;
+
+            gender = gender.ToLower();
+
+            switch (gender)
+            {
+                case "all":
+                    break;
+                case "male":
+                case "female":
+                    query = query.Where(e => e.Gender.ToLower() == gender);
+                    break;
+                default:
+                    return Request.CreateResponse(HttpStatusCode.BadRequest, $"{gender} is not a valid gender. Please use all, male or female.");
+            }
+
+            if (top > 0)
+            {
+                query = query.Take(top.Value);
+            }
+            return Request.CreateResponse(HttpStatusCode.OK, query.ToList());
         }
 
         public HttpResponseMessage Get(int id)
@@ -51,15 +71,15 @@ namespace WebApi.Controllers
         }
 
 
-        public HttpResponseMessage Put(Employee employee)
+        public HttpResponseMessage Put([FromBody]MyBodyType myTyp, [FromUri]Employee employee)
         {
             try
             {
-                Employee emp = db.Employees.FirstOrDefault(e => e.Id == employee.Id);
+                Employee emp = db.Employees.FirstOrDefault(e => e.Id == myTyp.id);
 
                 if (emp == null)
                 {
-                    return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Employee ID: " + employee.Id);
+                    return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Employee ID: " + myTyp.id);
                 }
                 else
                 {
@@ -117,4 +137,11 @@ namespace WebApi.Controllers
             }
         }
     }
+
+    public class MyBodyType
+    {
+        public int id { get; set; }
+        public string second { get; set; }
+    }
+
 }
